@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  universityId String?
+  academicYear String?
+  phone        String?
+  role         String        @default("APPLICANT") // LEADER or APPLICANT
+  passwordHash String?       // Required for Leaders, optional for applicants
+  createdAt    DateTime      @default(now())
+  applications Application[]
+}
+
+model Question {
+  id            String   @id @default(uuid())
+  text          String
+  type          String   // MCQ, TEXT, BOOLEAN
+  options       String?  // JSON stringified array for MCQ options e.g. ["Option A", "Option B"]
+  correctAnswer String   // Standardized answer string
+  points        Int      @default(10)
+  createdBy     String   @default("Leader")
+  createdAt     DateTime @default(now())
+  answers       Answer[]
+}
+
+model Application {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status       String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  score        Float    @default(0)
+  totalPoints  Float    @default(0)
+  passingScore Float    @default(70)
+  submittedAt  DateTime @default(now())
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  answers      Answer[]
+}
+
+model Answer {
+  id            String      @id @default(uuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  questionId    String
+  question      Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answerGiven   String
+  isCorrect     Boolean     @default(false)
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  action      String
+  details     String
+  performedBy String
+  createdAt   DateTime @default(now())
+}
+
+model ExamConfig {
+  id                 Int      @id @default(1)
+  passingScore       Float    @default(70)
+  isRegistrationOpen Boolean  @default(true)
+  allowedEmailDomain String   @default("@std.delta.edu.eg")
+  updatedAt          DateTime @updatedAt
+}
